@@ -1,0 +1,166 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Motorista cadastrado no sistema",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "handle": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "photoURL": { "type": "string" },
+        "bio": { "type": "string" },
+        "vehicleBrand": { "type": "string" },
+        "vehicleModel": { "type": "string" },
+        "vehicleVersion": { "type": "string" },
+        "vehicleYear": { "type": "number" },
+        "fuelType": { "type": "string" },
+        "vehiclePlate": { "type": "string" },
+        "cpf": { "type": "string" },
+        "birthday": { "type": "string", "format": "date" },
+        "age": { "type": "number" },
+        "primaryApp": { "type": "string" },
+        "city": { "type": "string" },
+        "state": { "type": "string" },
+        "yearsAsDriver": { "type": "number" },
+        "mileage": { "type": "number" },
+        "lastRevisionMileage": { "type": "number" },
+        "nextRevisionMileage": { "type": "number" },
+        "kmPerLiter": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Follow": {
+      "title": "Follow",
+      "description": "Relacionamento de seguir entre motoristas",
+      "type": "object",
+      "properties": {
+        "followerId": { "type": "string" },
+        "followingId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["followerId", "followingId"]
+    },
+    "Document": {
+      "title": "Document",
+      "description": "Documentos do motorista (CNH, CRLV, etc.)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["CNH", "CRLV", "Seguro", "Outros"] },
+        "number": { "type": "string" },
+        "expiryDate": { "type": "string", "format": "date" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type"]
+    },
+    "AppConnection": {
+      "title": "AppConnection",
+      "description": "Aplicativos que o motorista utiliza",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "appName": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "appName"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "Postagem na rede social da comunidade",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "authorUid": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorHandle": { "type": "string" },
+        "authorPhoto": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "audioUrl": { "type": "string" },
+        "likesCount": { "type": "number" },
+        "commentsCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorUid", "content"]
+    },
+    "Like": {
+      "title": "Like",
+      "description": "Curtida em uma postagem",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "postId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "postId"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "Comentário em uma postagem",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "postId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorPhoto": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "postId", "content"]
+    },
+    "DailyEntry": {
+      "title": "DailyEntry",
+      "description": "Registro diário de ganhos e gastos",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "earnings": { "type": "number" },
+        "expenses": { "type": "number" },
+        "profit": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "date", "earnings", "expenses", "profit"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Perfil do usuário"
+    },
+    "/follows/{followId}": {
+      "schema": "Follow",
+      "description": "Relacionamentos de seguidores"
+    },
+    "/dailyEntries/{entryId}": {
+      "schema": "DailyEntry",
+      "description": "Registros financeiros diários"
+    },
+    "/appConnections/{connId}": {
+      "schema": "AppConnection",
+      "description": "Conexões com apps de transporte"
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Feed da comunidade"
+    },
+    "/posts/{postId}/likes/{likeId}": {
+      "schema": "Like",
+      "description": "Curtidas nas postagens"
+    },
+    "/posts/{postId}/comments/{commentId}": {
+      "schema": "Comment",
+      "description": "Comentários nas postagens"
+    }
+  }
+}

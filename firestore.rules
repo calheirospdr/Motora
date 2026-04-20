@@ -1,0 +1,210 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId (UID)
+    // Fields:
+    //   - uid: string (required, immutable)
+    //   - displayName: string (optional, < 50 chars)
+    //   - email: string (required, email format)
+    //   - photoURL: string (optional, URL format)
+    //   - bio: string (optional, < 200 chars)
+    //   - vehicleModel: string (optional, < 50 chars)
+    //   - vehiclePlate: string (optional, < 10 chars)
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // Collection: documents
+    // Document ID: docId
+    // Fields:
+    //   - userId: string (required, immutable, matches owner)
+    //   - type: string (required, enum: CNH, CRLV, Seguro, Outros)
+    //   - number: string (optional, < 50 chars)
+    //   - expiryDate: string (optional, ISO 8601 format)
+    //   - imageUrl: string (optional, URL format)
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // Collection: appConnections
+    // Document ID: connId
+    // Fields:
+    //   - userId: string (required, immutable, matches owner)
+    //   - appName: string (required, < 50 chars)
+    //   - status: string (required, enum: active, inactive)
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // Collection: posts
+    // Document ID: postId
+    // Fields:
+    //   - userId: string (required, immutable, matches owner)
+    //   - authorName: string (required, < 50 chars)
+    //   - authorPhoto: string (optional, URL format)
+    //   - content: string (required, < 500 chars)
+    //   - likesCount: number (required, >= 0)
+    //   - commentsCount: number (required, >= 0)
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && (request.auth.uid == resource.data.userId || request.auth.uid == resource.data.authorUid);
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "calheirospedro07@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url == null || (url is string && (url.matches("^https://.*") || url.matches("^http://.*")));
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'displayName', 'handle', 'email', 'photoURL', 'bio', 'vehicleBrand', 'vehicleModel', 'vehicleVersion', 'vehicleYear', 'fuelType', 'vehiclePlate', 'cpf', 'birthday', 'age', 'primaryApp', 'city', 'state', 'yearsAsDriver', 'mileage', 'lastRevisionMileage', 'nextRevisionMileage', 'kmPerLiter', 'createdAt', 'updatedAt', 'role', 'followingCount', 'followersCount']) &&
+             data.uid == request.auth.uid &&
+             (!('email' in data) || (data.email == request.auth.token.email && isValidEmail(data.email))) &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 50)) &&
+             (!('handle' in data) || (data.handle is string && data.handle.matches("^[a-zA-Z0-9_]{3,20}$"))) &&
+             (!('photoURL' in data) || data.photoURL == null || isValidUrl(data.photoURL)) &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() < 500)) &&
+             (!('vehicleBrand' in data) || (data.vehicleBrand is string)) &&
+             (!('vehicleModel' in data) || (data.vehicleModel is string && data.vehicleModel.size() < 100)) &&
+             (!('vehicleVersion' in data) || (data.vehicleVersion is string)) &&
+             (!('vehicleYear' in data) || (data.vehicleYear is number)) &&
+             (!('fuelType' in data) || (data.fuelType is string)) &&
+             (!('vehiclePlate' in data) || (data.vehiclePlate is string && data.vehiclePlate.size() < 20)) &&
+             (!('cpf' in data) || (data.cpf is string && data.cpf.size() == 11)) &&
+             (!('birthday' in data) || data.birthday == null || (data.birthday is string)) &&
+             (!('age' in data) || (data.age is number)) &&
+             (!('primaryApp' in data) || (data.primaryApp is string)) &&
+             (!('city' in data) || (data.city is string)) &&
+             (!('state' in data) || (data.state is string)) &&
+             (!('yearsAsDriver' in data) || (data.yearsAsDriver is number)) &&
+             (!('mileage' in data) || (data.mileage is number)) &&
+             (!('lastRevisionMileage' in data) || (data.lastRevisionMileage is number)) &&
+             (!('nextRevisionMileage' in data) || (data.nextRevisionMileage is number)) &&
+             (!('kmPerLiter' in data) || (data.kmPerLiter is number));
+    }
+
+    function isValidDailyEntry(data) {
+      return hasOnlyAllowedFields(['id', 'userId', 'date', 'earnings', 'expenses', 'profit', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.date is string &&
+             data.earnings is number &&
+             data.expenses is number &&
+             data.profit is number;
+    }
+
+    function isValidFollow(data) {
+      return hasOnlyAllowedFields(['followerId', 'followingId', 'createdAt']) &&
+             data.followerId == request.auth.uid &&
+             data.followingId is string;
+    }
+
+    function isValidPost(data) {
+      return hasOnlyAllowedFields(['authorUid', 'authorName', 'authorHandle', 'authorPhoto', 'content', 'category', 'audioUrl', 'likesCount', 'commentsCount', 'createdAt']) &&
+             data.authorUid == request.auth.uid &&
+             data.authorName is string && data.authorName.size() < 50 &&
+             (!('authorPhoto' in data) || isValidUrl(data.authorPhoto)) &&
+             data.content is string && data.content.size() < 1000 &&
+             (!('category' in data) || (data.category is string)) &&
+             (!('audioUrl' in data) || isValidUrl(data.audioUrl)) &&
+             data.likesCount is number && data.likesCount >= 0 &&
+             data.commentsCount is number && data.commentsCount >= 0;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data) && 
+                      request.resource.data.createdAt == resource.data.createdAt &&
+                      (request.resource.data.role == resource.data.role || isAdmin())) ||
+                    (isAuthenticated() && 
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followersCount']) &&
+                      math.abs(request.resource.data.followersCount - resource.data.followersCount) == 1) ||
+                    (isAuthenticated() && 
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followingCount']) &&
+                      math.abs(request.resource.data.followingCount - resource.data.followingCount) == 1);
+      allow delete: if isAdmin();
+    }
+
+    match /follows/{followId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidFollow(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.followerId == request.auth.uid;
+    }
+
+    match /dailyEntries/{entryId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidDailyEntry(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && isValidDailyEntry(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /appConnections/{connId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && isValidAppConnection(request.resource.data);
+      allow update: if isDocOwner() && isValidAppConnection(request.resource.data) &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isDocOwner() || isAdmin();
+    }
+
+    match /posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidPost(request.resource.data);
+      allow update: if (isDocOwner() && isValidPost(request.resource.data) &&
+                    request.resource.data.createdAt == resource.data.createdAt) ||
+                    (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'commentsCount']));
+      allow delete: if isDocOwner() || isAdmin();
+
+      match /likes/{likeId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+        allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      }
+
+      match /comments/{commentId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+        allow delete: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isDocOwner() || isAdmin();
+      }
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
