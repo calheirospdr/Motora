@@ -1,20 +1,74 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
-
-# Run and deploy your AI Studio app
-
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/25796a0c-9940-4212-94c2-bb6338f5cdc7
-
-## Run Locally
-
-**Prerequisites:**  Node.js
+\# Motora App
 
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+
+Um app pensado para facilitar o dia a dia de quem dirige — seja para trabalho ou uso pessoal. A ideia é simples: organizar informações, melhorar o controle da rotina e ajudar você a tomar decisões mais inteligentes.
+
+
+
+\---
+
+
+
+\## Sobre o projeto
+
+
+
+O \*\*Motora App\*\* foi desenvolvido com foco em praticidade e eficiência. Ele reúne funcionalidades essenciais para motoristas em um só lugar, evitando bagunça e perda de informação.
+
+
+
+Se você trabalha com transporte, faz corridas por aplicativo ou só quer mais controle sobre seus dados, esse app foi feito pra você.
+
+
+
+\---
+
+
+
+\## Tecnologias utilizadas
+
+
+
+\- React  
+
+\- TypeScript  
+
+\- Vite  
+
+\- Firebase (autenticação e banco de dados)  
+
+
+
+\---
+
+
+
+\## 🚀 Como rodar o projeto localmente
+
+
+
+\### Pré-requisitos
+
+
+
+\- Node.js (versão LTS recomendada)
+
+
+
+\---
+
+
+
+\### Instalação
+
+
+
+Clone o repositório:
+
+
+
+```bash
+
+git clone <url-do-repositorio>
+
